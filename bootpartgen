@@ -1,0 +1,80 @@
+#!/bin/bash
+#
+# when this script is executed, the current working directory shall contain:
+#
+#       device-tree-xlnx/
+#
+#       fsbl.elf
+#       original-devicetree.dtb
+#       u-boot.elf
+#       uImage
+#       uramdisk.image.gz
+#
+#       fpga.bit
+#       fpga.hdf
+#
+
+set -e
+trap 'echo "Error at line $LINENO in $BASH_SOURCE"' ERR
+
+BOOTARGS='console=ttyPS0,115200 root=/dev/mmcblk0p2 rootwait rw earlyprintk uio_pdrv_genirq.of_id=xlnx,mmipcore-1.0'
+SDBOOT='if mmcinfo; then run uenvboot; echo Copying Linux from SD to RAM... && load mmc 0 ${kernel_load_address} ${kernel_image} && load mmc 0 ${devicetree_load_address} ${devicetree_image} && load mmc 0 ${ramdisk_load_address} ${ramdisk_image} && bootm ${kernel_load_address} - ${devicetree_load_address}; fi'
+
+command -v bootgen > /dev/null
+command -v hsi > /dev/null
+command -v dtc > /dev/null
+
+test -d device-tree-xlnx
+test -f fsbl.elf
+test -f original-devicetree.dtb
+test -f u-boot.elf
+test -f uImage
+test -f uramdisk.image.gz
+test -f fpga.bit
+test -f fpga.hdf
+
+mkdir -p bootpart
+
+echo Writing bootpart/BOOT.BIN
+bootgen -w on -o bootpart/BOOT.BIN -image <( printf '
+    the_ROM_image:
+    {
+        [bootloader]fsbl.elf
+        fpga.bit
+        u-boot.elf
+    }
+    ' )
+
+echo Writing bootpart/devicetree.dtb
+mkdir -p .tmp_hsi_
+cd .tmp_hsi_
+ln -s ../fpga.hdf .
+ln -s ../device-tree-xlnx .
+hsi -quiet < <( printf %s '
+    open_hw_design fpga.hdf
+    set_repo_path device-tree-xlnx
+    create_sw_design device-tree -os device_tree -proc ps7_cortexa9_0
+    generate_target -dir .
+    ' ) > /dev/null
+cd ..
+mv .tmp_hsi_/pl.dtsi fpga.dtsi
+rm -rf .tmp_hsi_
+
+sed -i 's/amba_pl: amba_pl/amba_pl: amba/' fpga.dtsi
+sed -i 's/interrupts = <0 29 4>;/interrupts = <0 29 1>;/' fpga.dtsi
+sed -i 's/interrupt-parent = <&intc>;/interrupt-parent = <0x3>;/' fpga.dtsi
+
+dtc -I dtb -O dts -o devicetree.dts original-devicetree.dtb
+echo '/include/ "fpga.dtsi"' >> devicetree.dts
+dtc -I dts -O dtb -o bootpart/devicetree.dtb devicetree.dts
+rm devicetree.dts
+rm fpga.dtsi
+
+echo Writing bootpart/uEnv.txt
+printf 'bootargs=%s\nsdboot=%s\n' "$BOOTARGS" "$SDBOOT" > bootpart/uEnv.txt
+
+echo Writing bootpart/uImage
+cp uImage bootpart/uImage
+
+echo Writing bootpart/uramdisk.image.gz
+cp uramdisk.image.gz bootpart/uramdisk.image.gz

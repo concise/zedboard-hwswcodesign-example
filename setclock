@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# To find the proper files on your system to configure clocks:
+#
+#       find /sys -name fclk_export
+#
+# Below we just assume /sys/devices/soc0/amba/f8007000.devcfg/
+#
+
+if [[ ! -e /sys/devices/soc0/amba/f8007000.devcfg/fclk/fclk0 ]]; then
+    echo fclk0 > /sys/devices/soc0/amba/f8007000.devcfg/fclk_export
+fi
+
+echo 1 > /sys/devices/soc0/amba/f8007000.devcfg/fclk/fclk0/enable
+
+echo 20000000 > /sys/devices/soc0/amba/f8007000.devcfg/fclk/fclk0/set_rate
