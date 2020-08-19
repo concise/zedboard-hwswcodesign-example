@@ -41,9 +41,9 @@ B = 0x9ab05a89280104cdef290ee8e8cd9f29419f2fd3231b589a08081107a419de141652bb37ce
 
     已經安裝好 x64 Ubuntu 16.04 Desktop
 
-    已經安裝好 Xilinx Vivado & SDK 2016.4
+    已經安裝好 Xilinx Vivado & SDK 2016.4 (update: 2020.1 tested)
 
-    在 bash shell 裡有 vivado、bootgen、hsi 等三個指令可以用
+    在 bash shell 裡有 vivado、bootgen、hsi (for 2016.4) / xsct (for 2020.1) 等三個指令可以用
 
     在 bash shell 裡有 dtc、git、screen 等指令可以用
     (sudo apt-get install device-tree-compiler git screen)
@@ -67,7 +67,7 @@ B = 0x9ab05a89280104cdef290ee8e8cd9f29419f2fd3231b589a08081107a419de141652bb37ce
 
     4.  下載 linaro-vivid-developer-20151215-714.tar.gz
 
-        wget https://releases.linaro.org/ubuntu/images/developer/15.12/linaro-vivid-developer-20151215-714.tar.gz
+        wget https://releases.linaro.org/archive/ubuntu/images/developer/15.12/linaro-vivid-developer-20151215-714.tar.gz
 
 
 
@@ -79,9 +79,10 @@ B = 0x9ab05a89280104cdef290ee8e8cd9f29419f2fd3231b589a08081107a419de141652bb37ce
         vivado -mode batch -source generate_system.zedboard.tcl
 
     根據你的電腦的運算資源，你可能需要等待 5 ~ 30 分鐘
-    前述指令結束後，確認新生成的 .bit 檔案與 .hdf 檔案的位置
+    前述指令結束後，確認新生成的 .bit 檔案與 .hdf (for 2016.4) / .xsa (for 2020.1) 檔案的位置
 
         find . -name '*.bit' -or -name '*.hdf'
+        find . -name '*.bit' -or -name '*.xsa'
 
 
 
@@ -110,16 +111,17 @@ B = 0x9ab05a89280104cdef290ee8e8cd9f29419f2fd3231b589a08081107a419de141652bb37ce
 
         device-tree-xlnx/       <= 剛才下載的 git repository
         fpga.bit                <= 剛才用 vivado 生成的檔案
-        fpga.hdf                <= 剛才用 vivado 生成的檔案
+        fpga.hdf / fpga.xsa     <= 剛才用 vivado 生成的檔案
         fsbl.elf                <= 來自 2016.3-zed-release.tar.xz
         original-devicetree.dtb <= 來自 2016.3-zed-release.tar.xz
         u-boot.elf              <= 來自 2016.3-zed-release.tar.xz
         uImage                  <= 來自 2016.3-zed-release.tar.xz
         uramdisk.image.gz       <= 來自 2016.3-zed-release.tar.xz
 
-    在這個目錄，執行 bootpartgen 腳本
+    在這個目錄，執行 bootpartgen (for 2016.4) / bootpartgen-2020.1 (for 2020.1) 腳本
 
         bash /path/to/bootpartgen
+        bash /path/to/bootpartgen-2020.1
 
     腳本執行結束後，會產生一個子目錄 bootpart
 
